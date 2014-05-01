@@ -21,8 +21,10 @@ rpm -i http://dl.fedoraproject.org/pub/epel/6/x86_64/epel-release-6-8.noarch.rpm
 
 yum -y upgrade
 
+# Disable selinux
 echo 0 > /selinux/enforce
 sed -i 's/SELINUX=enforcing/SELINUX=disabled/g' /etc/sysconfig/selinux
+sed -i 's/SELINUX=enforcing/SELINUX=disabled/g' /etc/selinux/config
 
 # Cobbler
 yum -y install cobbler httpd wget
@@ -42,7 +44,7 @@ cobbler repo add --mirror=http://mirror.utexas.edu/epel/6/x86_64 --name=epel6
 cobbler repo add --mirror=http://ftp.utexas.edu/centos/6.5/os/x86_64 --name=centos65
 
 #TURN THIS BACK ON
-#cobbler reposync
+cobbler reposync
 
 
 # cobbler system add --name=c1-101 --profile=compute --mac=08:00:27:83:d2:b5
