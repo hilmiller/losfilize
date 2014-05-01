@@ -1,6 +1,6 @@
 #!/bin/bash
 
-
+#adsf
 
 #Have a list of configuration here
 #MASTERPUBIP = 123.41.15.3
@@ -13,44 +13,16 @@
 
 # Get repos in order
 
-run () {
-	echo -n $1
-	$2 &> /root/losfilize.log
-	if [ $? -eq 0 ]; then
-        	tput setaf 2
-		echo " [ OK ]"
-		tput sgr0
-	else
-		tput setaf 1
-		echo " [ FAIL ]"
-		tput sgr0
-fi
 
-
-}
-
-run "Installing EPEL" "rpm --quiet -i http://dl.fedoraproject.org/pub/epel/6/x86_64/epel-release-6-8.noarch.rpm &> /root/losfilize.log"
-
-run "Upgrading packages" "yum -y upgrade"
-
-run "Disable selinux running now" "echo 0 > /selinux/enforce"
-run "Disable selinux configuration" 'sed -i 's/SELINUX=enforcing/SELINUX=disabled/g' /etc/sysconfig/selinux'
-
-
-echo -n Disabling selinux
 echo 0 >/selinux/enforce
 sed -i 's/SELINUX=enforcing/SELINUX=disabled/g' /etc/sysconfig/selinux
-if [ $? -eq 0 ]; then
-	tput setaf 2
-	echo " [ OK ]"
-	tput sgr0
-else
-	tput setaf 1
-	echo " [ FAIL ]"
-	tput sgr0
-fi
 
-yum -y install vim tmux
+rpm -i http://dl.fedoraproject.org/pub/epel/6/x86_64/epel-release-6-8.noarch.rpm
+
+yum -y upgrade
+
+echo 0 > /selinux/enforce
+sed -i 's/SELINUX=enforcing/SELINUX=disabled/g' /etc/sysconfig/selinux
 
 # Cobbler
 yum -y install cobbler httpd wget
@@ -70,7 +42,7 @@ cobbler repo add --mirror=http://mirror.utexas.edu/epel/6/x86_64 --name=epel6
 cobbler repo add --mirror=http://ftp.utexas.edu/centos/6.5/os/x86_64 --name=centos65
 
 #TURN THIS BACK ON
-cobbler reposync
+#cobbler reposync
 
 
 # cobbler system add --name=c1-101 --profile=compute --mac=08:00:27:83:d2:b5
@@ -151,7 +123,6 @@ service httpd restart
 chkconfig iptables off
 chkconfig cobblerd on
 chkconfig httpd on
-echo 0 >/selinux/enforce
 
 
 #cobbler system add --name=c1-101 --profile=compute --mac=08:00:27:83:d2:b5
