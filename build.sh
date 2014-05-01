@@ -110,6 +110,23 @@ chkconfig httpd on
 
 yum -y install pykickstart
 
-echo "nameserver 10.69.0.1" >> /etc/resolve.conf
+echo "nameserver 10.69.0.1" >> /etc/resolv.conf
 
 cobbler system add --name=c1-101.vmcluster.local --profile=compute --mac=08:00:27:83:d2:b5 --dns-name=c1-101.vmcluster.local --ip-address=10.69.0.10 --interface=eth0 --hostname=c1-101 --static=true --netmask=255.255.0.0 --kickstart=/var/lib/cobbler/kickstarts/sample.ks
+
+cobbler system add --name=master.vmcluster.local --profile=compute --dns-name=master.vmcluster.local --ip-address=10.69.0.1 --hostname=master --static=true --netmask=255.255.0.0
+cobbler sync
+
+
+yum -y install perl-Log-Log4perl yum-plugin-downloadonly perl-Config-IniFiles
+
+mkdir /admin
+cd /admin
+git pull https://github.com/hpcsi/losf.git
+
+mv /admin/losf/config/config_dir.template /admin/losf/config/config_dir
+/admin/losf/initconfig
+
+echo '/admin 10.69.0.0/255.255.0.0(rw,async,no_root_squash)' > /etc/exports
+yum -y install nfs-utils
+chkconfig nfs on
