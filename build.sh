@@ -126,6 +126,9 @@ chkconfig iptables off
 chkconfig cobblerd on
 chkconfig httpd on
 
+cobbler get-loaders
+yum -y install pykickstart
 
-#cobbler system add --name=c1-101 --profile=compute --mac=08:00:27:83:d2:b5
-#cobbler system add --name=c1-101.vmcluster.local --profile=compute --mac=08:00:27:83:d2:b5 --dns-name=c1-101.vmcluster.local --ip-address=10.69.0.10 --static=1
+echo "nameserver 10.69.0.1" >> /etc/resolve.conf
+
+cobbler system add --name=c1-101.vmcluster.local --profile=compute --mac=08:00:27:83:d2:b5 --dns-name=c1-101.vmcluster.local --ip-address=10.69.0.10 --interface=eth0 --hostname=c1-101 --static=true --netmask=255.255.0.0 --kickstart=/var/lib/cobbler/kickstarts/sample.ks
