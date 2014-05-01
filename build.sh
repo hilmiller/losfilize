@@ -14,54 +14,34 @@
 # Get repos in order
 
 
-echo 0 >/selinux/enforce
-sed -i 's/SELINUX=enforcing/SELINUX=disabled/g' /etc/sysconfig/selinux
+#############################################################################################################
 
-rpm -i http://dl.fedoraproject.org/pub/epel/6/x86_64/epel-release-6-8.noarch.rpm
 
-yum -y upgrade
 
+#################################################
 # Disable selinux
+
 echo 0 > /selinux/enforce
 sed -i 's/SELINUX=enforcing/SELINUX=disabled/g' /etc/sysconfig/selinux
 sed -i 's/SELINUX=enforcing/SELINUX=disabled/g' /etc/selinux/config
 
-# Cobbler
-yum -y install cobbler httpd wget
+#################################################
+# Add EPEL and upgrade
 
+rpm -i http://dl.fedoraproject.org/pub/epel/6/x86_64/epel-release-6-8.noarch.rpm
+yum -y upgrade
+
+#################################################
+# Setup cobbler
+
+yum -y install cobbler httpd wget bind dhcp
 sed -i 's/^server: 127.0.0.1/server: 10.69.0.1/g' /etc/cobbler/settings
 sed -i 's/^client_use_localhost: 0/client_use_localhost: 1/g' /etc/cobbler/settings
 sed -i 's/^manage_dns: 0/manage_dns: 1/g' /etc/cobbler/settings
-
 sed -i 's|^manage_forward_zones: \[\]|manage_forward_zones: \[\x27vmcluster.local\x27\]|g' /etc/cobbler/settings
 sed -i 's|^manage_reverse_zones: \[\]|manage_reverse_zones: \[\x2710.69\x27\]|g' /etc/cobbler/settings
-
-
-# Restarting here for new configs, even if they weren't on
-service cobblerd restart
-service httpd restart
-cobbler repo add --mirror=http://mirror.utexas.edu/epel/6/x86_64 --name=epel6
-cobbler repo add --mirror=http://ftp.utexas.edu/centos/6.5/os/x86_64 --name=centos65
-
-#TURN THIS BACK ON
-cobbler reposync
-
-
-# cobbler system add --name=c1-101 --profile=compute --mac=08:00:27:83:d2:b5
-# Install bind
-
-yum -y install bind
-
-sed -i 's|listen-on port 53 { 127.0.0.1; };|listen-on port 53 { 10.69.0.1; };|g' /etc/cobbler/named.template
-sed -i 's|allow-query     { localhost; };|allow-query     { 10.69/16; };|g' /etc/cobbler/named.template
-# Install dhcp
-
-yum -y install dhcp
-
-# Listen on interface
-echo 'DHCPDARGS="eth2";' > /etc/sysconfig/dhcpd
-sed -i 's|subnet 192.168.1.0 netmask 255.255.255.0 {|subnet 10.69.0.0 netmask 255.255.0.0 {|g' /etc/cobbler/dhcp.template
-
+sed -i 's|manage_dhcp: 0|manage_dhcp: 1|g' /etc/cobbler/settings
+sed -i 's|^next_server: 127.0.0.1|next_server: 10.69.0.1|g' /etc/cobbler/settings
 cat > /etc/cobbler/dhcp.template << EOF
 ddns-update-style interim;
 
@@ -96,37 +76,38 @@ subnet 10.69.0.0 netmask 255.255.0.0 {
 
 }
 EOF
-
-sed -i 's|manage_dhcp: 0|manage_dhcp: 1|g' /etc/cobbler/settings
-
-sed -i 's|^next_server: 127.0.0.1|next_server: 10.69.0.1|g' /etc/cobbler/settings
-
-# Have to restart here, because otherwise cobbler sync won't see the changes we made.
+sed -i 's|listen-on port 53 { 127.0.0.1; };|listen-on port 53 { 10.69.0.1; };|g' /etc/cobbler/named.template
+sed -i 's|allow-query     { localhost; };|allow-query     { 10.69/16; };|g' /etc/cobbler/named.template
+echo 'DHCPDARGS="eth2";' > /etc/sysconfig/dhcpd
+sed -i 's|subnet 192.168.1.0 netmask 255.255.255.0 {|subnet 10.69.0.0 netmask 255.255.0.0 {|g' /etc/cobbler/dhcp.template
+service cobblerd restart
+service httpd restart
+cobbler sync
+cobbler repo add --mirror=http://mirror.utexas.edu/epel/6/x86_64 --name=epel6
+cobbler repo add --mirror=http://ftp.utexas.edu/centos/6.5/os/x86_64 --name=centos65
+cobbler reposync
+cobbler get-loaders
 service cobblerd restart
 cobbler sync
 
-# We dont need to import one, we have perfectly good repos.
 
 wget http://ftp.utexas.edu/centos/6.5/os/x86_64/isolinux/initrd.img
 wget http://ftp.utexas.edu/centos/6.5/os/x86_64/isolinux/vmlinuz
-
 cobbler distro add --name=centos65 --kernel /root/vmlinuz --initrd=/root/initrd.img --arch=x86_64 --ksmeta="tree=http://@@http_server@@/cobbler/repo_mirror/centos65"
 cobbler profile add --name=compute --distro=centos65
 
 
 # needed for tftp
 service xinetd start
-
 # NEED TO FIX THIS
 service iptables stop
-
 service httpd restart
 
+chkconfig xinetd on
 chkconfig iptables off
 chkconfig cobblerd on
 chkconfig httpd on
 
-cobbler get-loaders
 yum -y install pykickstart
 
 echo "nameserver 10.69.0.1" >> /etc/resolve.conf
